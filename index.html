@@ -43,6 +43,32 @@
             background: #a5d6a7;
             border-radius: 50% 50% 0 0;
             filter: blur(2px);
+            z-index: 1;
+        }
+
+        /* Trees design */
+        .tree {
+            position: absolute;
+            bottom: 80px;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .tree-crown {
+            width: 0;
+            height: 0;
+            border-left: 30px solid transparent;
+            border-right: 30px solid transparent;
+            border-bottom: 60px solid #2d5a27;
+            margin-bottom: -5px;
+        }
+
+        .tree-trunk {
+            width: 12px;
+            height: 25px;
+            background: #5d4037;
         }
 
         /* Blinds container */
@@ -145,7 +171,7 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #ef4444; /* Initial red light */
+            background: #ef4444; 
             transition: background 0.3s ease, box-shadow 0.3s ease;
         }
 
@@ -153,40 +179,11 @@
             background: #10b981;
             box-shadow: 0 0 10px #10b981;
         }
-
-        /* Password alert style */
-        #password-alert {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            max-width: 300px;
-            padding: 15px 20px;
-            background: #ffffff;
-            border-left: 5px solid #3b82f6;
-            border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            z-index: 1000;
-            display: none;
-            animation: slideIn 0.5s ease-out;
-            font-size: 14px;
-            line-height: 1.5;
-            color: #1f2937;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(-100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen">
 
-    <!-- Password Disclosure Alert -->
-    <div id="password-alert">
-        Please return to the questionnaire and continue answering the remaining questions. Your password is <strong>496542</strong>.
-    </div>
-
-    <!-- Top System Status (Central UI) -->
+    <!-- Top System Status -->
     <div class="status-badge">
         <div id="status-dot" class="dot"></div>
         <span id="status-text">System Loading...</span>
@@ -194,8 +191,19 @@
 
     <!-- Window Simulation -->
     <div class="window-container">
+        <!-- Background Scenery -->
         <div class="scenery"></div>
         <div class="scenery" style="left: 150px; height: 120px; background: #81c784;"></div>
+
+        <!-- Added Trees -->
+        <div class="tree" style="left: 60px; bottom: 90px;">
+            <div class="tree-crown"></div>
+            <div class="tree-trunk"></div>
+        </div>
+        <div class="tree" style="right: 80px; bottom: 70px; transform: scale(0.8);">
+            <div class="tree-crown" style="border-bottom-color: #1b4317;"></div>
+            <div class="tree-trunk"></div>
+        </div>
 
         <!-- Blinds main structure -->
         <div id="blinds" class="blinds-wrapper">
@@ -222,7 +230,6 @@
         const video = document.getElementById('input_video');
         const canvas = document.getElementById('canvas-overlay');
         const ctx = canvas.getContext('2d');
-        const passwordAlert = document.getElementById('password-alert');
 
         // Initialize blind slats
         const SLAT_COUNT = 25;
@@ -234,20 +241,10 @@
 
         let model = null;
         let isOpened = false;
-        let hasInteracted = false;
-        let timerStarted = false;
 
         function setBlindsState(open) {
             if (isOpened === open) return;
             
-            if (!timerStarted) {
-                timerStarted = true;
-                setTimeout(() => {
-                    if (hasInteracted) passwordAlert.style.display = 'block';
-                }, 20000); 
-            }
-
-            hasInteracted = true;
             isOpened = open;
             if (isOpened) {
                 document.documentElement.style.setProperty('--blind-height', '10%');
@@ -302,13 +299,10 @@
         }
 
         async function init() {
-            // Keep status dot red and text as loading initially
             try {
                 await setupWebcam();
-                // Model loading starts
                 model = await cocoSsd.load();
                 
-                // Once loaded, turn dot green and update text
                 statusDot.classList.add('active');
                 statusText.innerText = "System Ready: Show phone to camera";
                 detectFrame();
