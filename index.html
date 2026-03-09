@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phone-Blindsl</title>
+    <title>phone-blind</title>
     <!-- Load TensorFlow.js and COCO-SSD -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
@@ -97,7 +97,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: scaleX(-1); /* Mirror view */
+            transform: scaleX(-1);
         }
 
         #canvas-overlay {
@@ -106,7 +106,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            transform: scaleX(-1); /* Align bounding boxes with mirrored video */
+            transform: scaleX(-1);
         }
 
         /* Instruction text style */
@@ -145,7 +145,8 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #ef4444;
+            background: #ef4444; /* Initial red light */
+            transition: background 0.3s ease, box-shadow 0.3s ease;
         }
 
         .dot.active {
@@ -176,37 +177,19 @@
             from { transform: translateX(-100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-
-        /* Loading animation */
-        #loading-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen">
-
-    <!-- Loading screen -->
-    <div id="loading-overlay">
-        <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p id="loading-text" class="text-white text-lg tracking-widest">Loading...</p>
-    </div>
 
     <!-- Password Disclosure Alert -->
     <div id="password-alert">
         Please return to the questionnaire and continue answering the remaining questions. Your password is <strong>496542</strong>.
     </div>
 
-    <!-- Top System Status -->
+    <!-- Top System Status (Central UI) -->
     <div class="status-badge">
         <div id="status-dot" class="dot"></div>
-        <span id="status-text">System Initializing...</span>
+        <span id="status-text">System Loading...</span>
     </div>
 
     <!-- Window Simulation -->
@@ -240,8 +223,6 @@
         const canvas = document.getElementById('canvas-overlay');
         const ctx = canvas.getContext('2d');
         const passwordAlert = document.getElementById('password-alert');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingText = document.getElementById('loading-text');
 
         // Initialize blind slats
         const SLAT_COUNT = 25;
@@ -255,13 +236,10 @@
         let isOpened = false;
         let hasInteracted = false;
         let timerStarted = false;
-        let isCameraReady = false;
 
-        // Blinds toggle logic
         function setBlindsState(open) {
             if (isOpened === open) return;
             
-            // Start timer on first interaction
             if (!timerStarted) {
                 timerStarted = true;
                 setTimeout(() => {
@@ -282,7 +260,6 @@
             }
         }
 
-        // Camera setup
         async function setupWebcam() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -295,31 +272,24 @@
                     };
                 });
             } catch (err) {
-                loadingText.innerText = "Camera Access Denied!";
+                statusText.innerText = "Camera Access Denied!";
                 throw err;
             }
         }
 
-        // AI Detection Loop
         async function detectFrame() {
             if (!model) return;
             
             const predictions = await model.detect(video);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            let phoneDetected = false;
-
             predictions.forEach(prediction => {
                 if (prediction.class === 'cell phone' && prediction.score > 0.6) {
-                    phoneDetected = true;
                     const [x, y, width, height] = prediction.bbox;
-                    
-                    // Draw detection box
                     ctx.strokeStyle = '#00FF00';
                     ctx.lineWidth = 4;
                     ctx.strokeRect(x, y, width, height);
 
-                    // Logic: height > width = Upright (Open); width > height = Flat (Close)
                     if (height > width) {
                         setBlindsState(true);
                     } else {
@@ -332,19 +302,18 @@
         }
 
         async function init() {
+            // Keep status dot red and text as loading initially
             try {
                 await setupWebcam();
-                isCameraReady = true;
-                statusDot.classList.add('active');
-
+                // Model loading starts
                 model = await cocoSsd.load();
                 
-                loadingOverlay.style.display = 'none';
+                // Once loaded, turn dot green and update text
+                statusDot.classList.add('active');
                 statusText.innerText = "System Ready: Show phone to camera";
                 detectFrame();
             } catch (e) {
                 console.error(e);
-                loadingText.innerText = "Load Failed";
                 statusText.innerText = "Initialization Failed";
                 statusText.style.color = "#ef4444";
             }
